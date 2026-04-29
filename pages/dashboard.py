@@ -9,31 +9,41 @@ from database import (
     get_price_tracking, get_influencers
 )
 from price_updater import update_prices
+from scheduler import start_scheduler, is_running, get_last_result, get_next_run
 from config import MIN_RECOMMENDATIONS
 
 
-def _render_update_button():
-    """주가 업데이트 버튼 (수동)"""
+def _render_update_bar():
+    """주가 업데이트: 스케줄러 상태 + 수동 버튼"""
     active_recs = get_recommendations(status="active")
-    if not active_recs:
-        return
 
-    last_update = st.session_state.get("last_price_update")
-    if last_update:
-        elapsed = (datetime.now() - last_update).seconds // 60
-        update_info = f"(마지막 업데이트: {elapsed}분 전)"
-    else:
-        update_info = "(아직 업데이트하지 않음)"
+    # 스케줄러 자동 시작
+    if not is_running():
+        start_scheduler()
 
-    col_btn, col_info = st.columns([1, 3])
+    col_status, col_btn = st.columns([3, 1])
+
+    with col_status:
+        if is_running():
+            next_run = get_next_run()
+            last = get_last_result()
+            status_parts = ["자동 업데이트: **1시간 간격** (평일 09~18시)"]
+            if next_run:
+                status_parts.append(f"다음 실행: {next_run}")
+            if last["time"]:
+                status_parts.append(f"최근: {last['time'].strftime('%H:%M')} - {last['message']}")
+            st.caption(" | ".join(status_parts))
+        else:
+            st.caption("자동 업데이트: 비활성")
+
     with col_btn:
-        if st.button("주가 업데이트", type="primary"):
-            with st.spinner(f"주가 데이터 업데이트 중... ({len(active_recs)}개 종목)"):
-                update_prices()
-            st.session_state["last_price_update"] = datetime.now()
-            st.rerun()
-    with col_info:
-        st.caption(update_info)
+        if active_recs:
+            if st.button("지금 업데이트", type="secondary"):
+                with st.spinner(f"{len(active_recs)}개 종목 업데이트 중..."):
+                    update_prices()
+                st.rerun()
+        else:
+            st.caption("추적중인 종목 없음")
 
 
 def _build_comparison_data():
@@ -115,8 +125,8 @@ def _build_comparison_data():
 def render():
     st.header("대시보드")
 
-    # 주가 업데이트 버튼
-    _render_update_button()
+    # 주가 업데이트 바 (스케줄러 상태 + 수동 버튼)
+    _render_update_bar()
 
     # 데이터 구축
     df_comp, df_detail = _build_comparison_data()
