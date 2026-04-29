@@ -16,24 +16,18 @@ st.sidebar.markdown("---")
 
 page = st.sidebar.radio(
     "메뉴",
-    ["대시보드", "인플루언서 관리", "추천 종목 입력", "추천 종목 추적", "매매 일지", "주가 업데이트"]
+    ["대시보드", "종목 등록", "매매 일지", "설정"]
 )
 
 if page == "대시보드":
     from pages import dashboard
     dashboard.render()
-elif page == "인플루언서 관리":
-    from pages import influencer
-    influencer.render()
-elif page == "추천 종목 입력":
-    from pages import recommendation
-    recommendation.render()
-elif page == "추천 종목 추적":
-    from pages import tracking
-    tracking.render()
+elif page == "종목 등록":
+    from pages import register
+    register.render()
 elif page == "매매 일지":
     from pages import journal
     journal.render()
-elif page == "주가 업데이트":
-    from pages import updater
-    updater.render()
+elif page == "설정":
+    from pages import settings
+    settings.render()
