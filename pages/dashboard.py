@@ -12,20 +12,28 @@ from price_updater import update_prices
 from config import MIN_RECOMMENDATIONS
 
 
-def _auto_update_prices():
-    """페이지 로드 시 자동 주가 업데이트 (10분 간격)"""
-    now = datetime.now()
-    last_update = st.session_state.get("last_price_update")
-
-    # 10분 이내에 업데이트했으면 스킵
-    if last_update and (now - last_update).seconds < 600:
+def _render_update_button():
+    """주가 업데이트 버튼 (수동)"""
+    active_recs = get_recommendations(status="active")
+    if not active_recs:
         return
 
-    active_recs = get_recommendations(status="active")
-    if active_recs:
-        with st.spinner("주가 데이터 자동 업데이트 중..."):
-            update_prices()
-        st.session_state["last_price_update"] = now
+    last_update = st.session_state.get("last_price_update")
+    if last_update:
+        elapsed = (datetime.now() - last_update).seconds // 60
+        update_info = f"(마지막 업데이트: {elapsed}분 전)"
+    else:
+        update_info = "(아직 업데이트하지 않음)"
+
+    col_btn, col_info = st.columns([1, 3])
+    with col_btn:
+        if st.button("주가 업데이트", type="primary"):
+            with st.spinner(f"주가 데이터 업데이트 중... ({len(active_recs)}개 종목)"):
+                update_prices()
+            st.session_state["last_price_update"] = datetime.now()
+            st.rerun()
+    with col_info:
+        st.caption(update_info)
 
 
 def _build_comparison_data():
@@ -107,8 +115,8 @@ def _build_comparison_data():
 def render():
     st.header("대시보드")
 
-    # 자동 주가 업데이트
-    _auto_update_prices()
+    # 주가 업데이트 버튼
+    _render_update_button()
 
     # 데이터 구축
     df_comp, df_detail = _build_comparison_data()
